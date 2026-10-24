@@ -2,6 +2,7 @@ import { DEMO_FOODS, DEMO_DAY, FOOD_CATEGORIES, MEALS } from './data.js';
 import { loadState, persistState, validateState, cleanFood, newState, makeId } from './storage.js';
 import { localISODate, moveISODate, lastSevenDays, sumNutrition, scaleNutrition, formatNumber, isISODate } from './math.js';
 import { initCloudUI, cloudBadge, cloudPanel, queueCloudSave } from './cloud-ui.js';
+import { buddyArt, BUDDY_NOTES, quickFoodChoices } from './playful.js';
 
 let state = loadState();
 let selectedDate = localISODate();
@@ -10,6 +11,7 @@ let foodCategory = '全部';
 let foodQuery = '';
 let preferredMeal = 'lunch';
 let modal = null;
+let buddyNoteIndex = 0;
 
 const root = document.getElementById('app');
 const navigation = [
@@ -130,7 +132,7 @@ function macrosCard(today) {
 function mealCard(meal, dayEntries) {
   const items = dayEntries.filter(e => e.meal === meal.id);
   const total = sumNutrition(items);
-  return `<section class="surface meal-card"><div class="meal-head"><div class="meal-icon">${meal.emoji}</div><div><h3>${meal.label}</h3><p>${meal.sub}</p></div><b>${formatNumber(total.kcal)} <small>kcal</small></b></div>
+  return `<section class="surface meal-card meal-${meal.id}"><div class="meal-head"><div class="meal-icon">${meal.emoji}</div><div><h3>${meal.label}</h3><p>${meal.sub}</p></div><b>${formatNumber(total.kcal)} <small>kcal</small></b></div>
     <div class="meal-entries">${items.length ? items.map(e => {
       const n = scaleNutrition(e.food, e.quantity);
       return `<div class="meal-entry"><div class="meal-entry-icon">${esc(e.food.emoji || '🍽️')}</div><div class="meal-entry-name"><strong>${esc(e.food.name)}</strong><small>${formatNumber(e.quantity, 2)} × ${esc(e.food.serving)}${e.food.source === 'demo' ? ' · 示範估值' : ''}</small></div><span>${formatNumber(n.kcal)} kcal</span><button class="icon-button" data-action="edit-entry" data-id="${safeAttr(e.id)}" aria-label="編輯 ${safeAttr(e.food.name)}">${icon('edit', 15)}</button><button class="icon-button danger-hover" data-action="delete-entry" data-id="${safeAttr(e.id)}" aria-label="刪除 ${safeAttr(e.food.name)}">${icon('trash', 15)}</button></div>`;
@@ -152,10 +154,12 @@ function pageToday() {
   const today = sumNutrition(entries);
   const days=lastSevenDays(moveISODate(selectedDate,3));
   const recordedDays=new Set(state.entries.map(e=>e.date)).size;
-  return `<section class="welcome-row"><div><div class="eyebrow">MAKE ROOM FOR A LITTLE GOOD</div><h1>今天，也好好照顧自己<span>。</span></h1><p>把每一餐的小選擇，慢慢記成自己的生活。</p></div><div class="welcome-note"><span>🌿</span><div><b>陪你吃好每一天</b><small>一點記錄，多一點了解</small></div></div></section>
+  return `<section class="zizi-welcome"><div class="zizi-copy"><span class="hello-sticker">HELLO, 今天的你！ <span aria-hidden="true">✦</span></span><h1>吃好一點，<br>開心<span class="sunny-word">多一點</span>！</h1><p>跟營養茲一起，把每一餐記成生活的小美好。</p><button type="button" class="zizi-start" data-action="add-meal" data-meal="lunch">${icon('plus',17)} 記下這一餐 <span aria-hidden="true">↗</span></button></div><div class="zizi-scene"><span class="food-doodle doodle-tomato" aria-hidden="true">🍅</span><span class="food-doodle doodle-carrot" aria-hidden="true">🥕</span><span class="little-star star-one" aria-hidden="true">✧</span><span class="little-star star-two" aria-hidden="true">✦</span><div class="zizi-speech"><b>嗨，我是茲茲！</b><span>今天也陪你好好吃飯。</span></div>${buddyArt()}<span class="zizi-sticker">營養茲的陪吃小夥伴</span></div></section>
+    <div class="buddy-note"><span class="note-flower" aria-hidden="true">✿</span><p id="buddy-quote" aria-live="polite">${BUDDY_NOTES[buddyNoteIndex]}</p><button type="button" data-action="buddy-note" aria-label="換一句鼓勵小語">換一句 ${icon('next',14)}</button></div>
     <div class="week-strip" aria-label="選擇紀錄日期"><div class="week-caption"><small>你的飲食日曆</small><strong>${new Date(selectedDate+'T12:00:00').toLocaleDateString('zh-TW',{month:'long'})}</strong></div>${days.map(d=>`<button class="day-chip ${d===selectedDate?'selected':''}" data-action="pick-day" data-date="${d}" aria-pressed="${d===selectedDate}"><small>${weekDay(d)}</small><b>${Number(d.slice(-2))}</b><i class="${entriesOn(d).length?'has-record':''}"></i></button>`).join('')}<button class="today-link" data-action="pick-day" data-date="${localISODate()}">回今天</button></div>
     <div class="overview-grid">${calorieCard(today)}${macrosCard(today)}</div>
     <div class="quick-stats"><div><span class="stat-icon peach">${icon('check',20)}</span><span><b>${entries.length}</b><small>今日飲食紀錄</small></span></div><div><span class="stat-icon lavender">${icon('calendar',20)}</span><span><b>${recordedDays}</b><small>累積記錄天數</small></span></div><div><span class="stat-icon mint">${icon('heart',20)}</span><span><b>${state.customFoods.length}</b><small>我的自訂食物</small></span></div></div>
+    <section class="quick-food-section"><div class="quick-food-title"><div><span class="eyebrow">A LITTLE QUICK PICK</span><h2>${state.entries.length?'你常記錄的食物':'先從熟悉的食物開始'} <span aria-hidden="true">↴</span></h2></div><button class="text-link" data-action="add-meal" data-meal="lunch">逛逛食物庫 ↗</button></div><div class="quick-foods">${quickFoodChoices(foodList(),state.entries).map(f=>`<button type="button" class="quick-food" data-action="quick-food" data-id="${safeAttr(f.id)}" aria-label="快速記錄 ${safeAttr(f.name)}"><span class="quick-food-emoji" aria-hidden="true">${esc(f.emoji)}</span><span class="quick-food-copy"><b>${esc(f.name)}</b><small>${formatNumber(f.kcal)} kcal／份 · ${f.source==='demo'?'示範估值':'自訂'}</small></span><span class="quick-plus" aria-hidden="true">＋</span></button>`).join('')}</div></section>
     <div class="section-header"><div><div class="eyebrow">FOOD DIARY</div><h2>今日飲食紀錄 <span class="total-count">${entries.length} 筆</span></h2></div><button class="primary-button" data-action="add-meal" data-meal="lunch">${icon('plus', 18)} 記錄飲食</button></div>
     <div class="content-grid"><div class="meal-grid">${MEALS.map(m => mealCard(m, entries)).join('')}</div>
       <aside class="insight-rail">${weeklyMini()}<div class="tip-card"><div class="tip-icon">💡</div><h3>今天的小提醒</h3><p>${entries.length ? '留意餐點的多樣性，營養不只是一個熱量數字。覺得估算不準時，可以自己調整份量或建立食物。' : '還沒有飲食紀錄嗎？可以試著記下下一餐，也能先載入示範資料體驗。'}</p><button class="soft-button" data-action="demo">${icon('plus', 16)} ${entries.length ? '再加入示範餐點' : '載入一日示範紀錄'}</button></div>
@@ -242,6 +246,8 @@ function exportCsv() {
 }
 function handleAction(action, button) {
   switch (action) {
+    case 'buddy-note': { buddyNoteIndex=(buddyNoteIndex+1)%BUDDY_NOTES.length;const quote=document.getElementById('buddy-quote');if(quote)quote.textContent=BUDDY_NOTES[buddyNoteIndex];const scene=document.querySelector('.zizi-scene');scene?.classList.remove('say-hi');requestAnimationFrame(()=>scene?.classList.add('say-hi'));break; }
+    case 'quick-food': {const food=foodList().find(f=>f.id===button.dataset.id);if(food)openEntry(food);break;}
     case 'nav': activePage = button.dataset.page; modal = null; render(); window.scrollTo(0,0); break;
     case 'pick-day': if(isISODate(button.dataset.date)){selectedDate=button.dataset.date;render();} break;
     case 'date-prev': selectedDate = moveISODate(selectedDate, -1); render(); break;

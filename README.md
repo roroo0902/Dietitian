@@ -1,6 +1,6 @@
 # 營養茲｜陪你吃好每一天
 
-繁體中文、手機友善的個人飲食日記。v2 加入新版介面與私人 Google Sheets 讀寫功能；不需安裝套件或使用付費 AI API。
+繁體中文、手機友善的個人飲食日記。v3 加入活潑版品牌角色、鼓勵小語、常吃食物捷徑與新版介面與私人 Google Sheets 讀寫功能；不需安裝套件或使用付費 AI API。
 
 正式網站：https://roroo0902.github.io/Dietitian/
 
@@ -49,10 +49,10 @@ npm test
 ## 程式結構
 
 - `index.html`、`app.js`：入口、畫面與互動。
-- `styles.css`、`brand-v2.css`：基本樣式與品牌改版。
+- `styles.css`、`brand-v2.css`、`brand-v3.css`：基本樣式與品牌改版。
 - `data.js`、`math.js`、`storage.js`：示範資料、計算與本機保存。
 - `cloud.js`、`cloud-ui.js`：Google 授權、資料轉換、同步、衝突檢查與復原。
-- `meal-art.svg`、`favicon.svg`：品牌圖像。
+- `meal-art.svg`、`favicon.svg`、`playful.js`：品牌圖像、茲茲角色及食物捷徑。
 - `GOOGLE_SETUP.html`：Google OAuth 設定與疑難排解。
 - `tests/`：計算、驗證、雲端資料轉換及失敗情境測試。
 
