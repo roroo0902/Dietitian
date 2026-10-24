@@ -1,6 +1,7 @@
 import { DEMO_FOODS, DEMO_DAY, FOOD_CATEGORIES, MEALS } from './data.js';
 import { loadState, persistState, validateState, cleanFood, newState, makeId } from './storage.js';
 import { localISODate, moveISODate, lastSevenDays, sumNutrition, scaleNutrition, formatNumber, isISODate } from './math.js';
+import { initCloudUI, cloudBadge, cloudPanel, queueCloudSave } from './cloud-ui.js';
 
 let state = loadState();
 let selectedDate = localISODate();
@@ -56,7 +57,7 @@ function flash(message) {
   flash.timer = window.setTimeout(() => toast.classList.remove('show'), 3600);
 }
 function commit(message) {
-  try { persistState(state); render(); if (message) flash(message); }
+  try { persistState(state); queueCloudSave(); render(); if (message) flash(message); }
   catch (error) { flash('無法儲存：瀏覽器儲存空間可能不足。建議先匯出備份。'); console.error(error); }
 }
 function navMarkup(place = 'side') {
@@ -68,18 +69,19 @@ function shell() {
     <div class="app-layout">
       <aside class="sidebar">
         <div class="brand"><div class="brand-icon"><img src="favicon.svg?v=yingyangzi-1" width="32" height="32" alt="" /></div><div><strong>營養茲</strong><small>陪你吃好每一天。</small></div></div>
-        <div class="nav-overline">我的健康日記</div>
+        <div class="nav-overline">DAILY WELLNESS · 個人版</div>
         <nav class="sidebar-nav" aria-label="主要導覽">${navMarkup()}</nav>
         <div class="side-bottom"><div class="side-illustration">🥑 <span>🥬</span></div><strong>記錄是為了更了解自己</strong><p>不需要完美，只需要一點一點找到適合自己的步調。</p></div>
-        <div class="sidebar-foot">營養茲 · 你的每日飲食夥伴</div>
+        <div class="sidebar-cloud">${cloudBadge()}</div><div class="sidebar-foot">營養茲 · 你的每日飲食夥伴</div>
       </aside>
       <div class="main-wrap">
         <header class="topbar">
           <div class="topbar-brand"><span class="mobile-mark"><img src="favicon.svg?v=yingyangzi-1" width="25" height="25" alt="" /></span><span class="breadcrumb">營養茲 <span>/</span> <b>${pageLabel}</b></span></div>
-          <div class="date-selector">
+          <div class="topbar-tools">${cloudBadge()}<div class="date-selector">
             <button type="button" class="date-arrow" data-action="date-prev" aria-label="前一天">${icon('back', 18)}</button>
             <label class="date-picker-label">${icon('calendar', 17)}<input type="date" id="selected-date" value="${selectedDate}" aria-label="紀錄日期" /></label>
             <button type="button" class="date-arrow" data-action="date-next" aria-label="後一天">${icon('next', 18)}</button>
+          </div>
           </div>
         </header>
         <main class="content" id="main-content">${activePage === 'today' ? pageToday() : activePage === 'foods' ? pageFoods() : activePage === 'insights' ? pageInsights() : pageSettings()}</main>
@@ -106,7 +108,7 @@ function calorieCard(today) {
     <p>個人設定目標 ${formatNumber(goal)} kcal <span class="dot-sep">·</span> ${over ? `高於目標 ${formatNumber(today.kcal - goal)} kcal` : `進度 ${formatNumber(progress)}%`}</p>
     <div class="calorie-track"><div style="width:${progress}%"></div></div>
     <small>每天的需求都可能不同，目標僅供自我觀察。</small>
-    <div class="hero-food">🥗</div>
+    <img class="hero-food hero-plate" src="meal-art.svg" alt="蔬菜、飯與魚肉組成的繽紛餐盤插畫" />
   </div>`;
 }
 function macrosCard(today) {
@@ -148,8 +150,12 @@ function weeklyMini() {
 function pageToday() {
   const entries = entriesOn(selectedDate);
   const today = sumNutrition(entries);
-  return `${heading('YOUR DAILY JOURNAL', '吃得自在，也看得明白。', `${dateText(selectedDate)} · 今天的每一餐，都值得好好記錄。`)}
+  const days=lastSevenDays(moveISODate(selectedDate,3));
+  const recordedDays=new Set(state.entries.map(e=>e.date)).size;
+  return `<section class="welcome-row"><div><div class="eyebrow">MAKE ROOM FOR A LITTLE GOOD</div><h1>今天，也好好照顧自己<span>。</span></h1><p>把每一餐的小選擇，慢慢記成自己的生活。</p></div><div class="welcome-note"><span>🌿</span><div><b>陪你吃好每一天</b><small>一點記錄，多一點了解</small></div></div></section>
+    <div class="week-strip" aria-label="選擇紀錄日期"><div class="week-caption"><small>你的飲食日曆</small><strong>${new Date(selectedDate+'T12:00:00').toLocaleDateString('zh-TW',{month:'long'})}</strong></div>${days.map(d=>`<button class="day-chip ${d===selectedDate?'selected':''}" data-action="pick-day" data-date="${d}" aria-pressed="${d===selectedDate}"><small>${weekDay(d)}</small><b>${Number(d.slice(-2))}</b><i class="${entriesOn(d).length?'has-record':''}"></i></button>`).join('')}<button class="today-link" data-action="pick-day" data-date="${localISODate()}">回今天</button></div>
     <div class="overview-grid">${calorieCard(today)}${macrosCard(today)}</div>
+    <div class="quick-stats"><div><span class="stat-icon peach">${icon('check',20)}</span><span><b>${entries.length}</b><small>今日飲食紀錄</small></span></div><div><span class="stat-icon lavender">${icon('calendar',20)}</span><span><b>${recordedDays}</b><small>累積記錄天數</small></span></div><div><span class="stat-icon mint">${icon('heart',20)}</span><span><b>${state.customFoods.length}</b><small>我的自訂食物</small></span></div></div>
     <div class="section-header"><div><div class="eyebrow">FOOD DIARY</div><h2>今日飲食紀錄 <span class="total-count">${entries.length} 筆</span></h2></div><button class="primary-button" data-action="add-meal" data-meal="lunch">${icon('plus', 18)} 記錄飲食</button></div>
     <div class="content-grid"><div class="meal-grid">${MEALS.map(m => mealCard(m, entries)).join('')}</div>
       <aside class="insight-rail">${weeklyMini()}<div class="tip-card"><div class="tip-icon">💡</div><h3>今天的小提醒</h3><p>${entries.length ? '留意餐點的多樣性，營養不只是一個熱量數字。覺得估算不準時，可以自己調整份量或建立食物。' : '還沒有飲食紀錄嗎？可以試著記下下一餐，也能先載入示範資料體驗。'}</p><button class="soft-button" data-action="demo">${icon('plus', 16)} ${entries.length ? '再加入示範餐點' : '載入一日示範紀錄'}</button></div>
@@ -192,8 +198,8 @@ function pageInsights() {
 }
 function pageSettings() {
   return `${heading('PREFERENCES & PRIVACY', '打造適合自己的紀錄方式。', '數字是參考工具，不是需要每天達成的考試。')}
-    <div class="settings-stack"><section class="surface settings-panel"><div class="settings-panel-head"><div class="setting-mark green">🎯</div><div><h3>自訂參考目標</h3><p>依照你自己的需求設定，不由程式自動判斷每日熱量。</p></div></div><form id="goals-form" class="settings-form"><label>每日熱量參考值 <small>kcal</small><input name="kcalGoal" type="number" min="500" max="10000" step="50" required value="${state.settings.kcalGoal}" /></label><label>每日蛋白質參考值 <small>g</small><input name="proteinGoal" type="number" min="1" max="1000" step="1" required value="${state.settings.proteinGoal}" /></label><button class="primary-button" type="submit">${icon('check', 17)} 儲存設定</button></form><p class="form-hint">這些數值是自行設定的追蹤參考，不代表個人熱量需求或醫療建議。未成年人、懷孕、慢性疾病或有飲食困擾者，建議尋求專業評估。</p></section>
-    <section class="surface settings-panel"><div class="settings-panel-head"><div class="setting-mark peach">${icon('shield', 23)}</div><div><h3>本機資料與備份</h3><p>目前共有 ${state.entries.length} 筆飲食紀錄、${state.customFoods.length} 筆自訂食物。</p></div></div><div class="setting-actions"><button class="outline-button" data-action="export-json">${icon('download', 17)} 匯出完整 JSON</button><button class="outline-button" data-action="export-csv">${icon('download', 17)} 匯出餐點 CSV</button><label class="outline-button import-label">${icon('upload', 17)} 匯入 JSON（覆蓋）<input type="file" id="import-json" accept="application/json,.json" hidden /></label></div><p class="form-hint">資料儲存在此瀏覽器的 localStorage，不會自動同步。清除瀏覽資料或更換手機可能造成紀錄遺失，請定期匯出 JSON。匯入會取代此裝置現有資料。</p><div class="danger-zone"><div><b>清除所有本機紀錄</b><p>這個動作無法復原，建議先備份。</p></div><button class="danger-button" data-action="clear-all">清除全部資料</button></div></section>
+    <div class="settings-stack">${cloudPanel()}<section class="surface settings-panel"><div class="settings-panel-head"><div class="setting-mark green">🎯</div><div><h3>自訂參考目標</h3><p>依照你自己的需求設定，不由程式自動判斷每日熱量。</p></div></div><form id="goals-form" class="settings-form"><label>每日熱量參考值 <small>kcal</small><input name="kcalGoal" type="number" min="500" max="10000" step="50" required value="${state.settings.kcalGoal}" /></label><label>每日蛋白質參考值 <small>g</small><input name="proteinGoal" type="number" min="1" max="1000" step="1" required value="${state.settings.proteinGoal}" /></label><button class="primary-button" type="submit">${icon('check', 17)} 儲存設定</button></form><p class="form-hint">這些數值是自行設定的追蹤參考，不代表個人熱量需求或醫療建議。未成年人、懷孕、慢性疾病或有飲食困擾者，建議尋求專業評估。</p></section>
+    <section class="surface settings-panel"><div class="settings-panel-head"><div class="setting-mark peach">${icon('shield', 23)}</div><div><h3>本機資料與備份</h3><p>目前共有 ${state.entries.length} 筆飲食紀錄、${state.customFoods.length} 筆自訂食物。</p></div></div><div class="setting-actions"><button class="outline-button" data-action="export-json">${icon('download', 17)} 匯出完整 JSON</button><button class="outline-button" data-action="export-csv">${icon('download', 17)} 匯出餐點 CSV</button><label class="outline-button import-label">${icon('upload', 17)} 匯入 JSON（覆蓋）<input type="file" id="import-json" accept="application/json,.json" hidden /></label></div><p class="form-hint">未完成 Google 連線時，紀錄只保存在此瀏覽器。連線並確認同步方向後會自動保存到私人試算表；仍建議定期匯出 JSON。匯入會取代此裝置現有資料。</p><div class="danger-zone"><div><b>清除所有本機紀錄</b><p>這個動作無法復原，建議先備份。</p></div><button class="danger-button" data-action="clear-all">清除全部資料</button></div></section>
     <section class="disclaimer-panel"><div>${icon('info', 20)}</div><p><strong>關於營養資料</strong>：內建食品資料只為展示功能而建立，屬近似估值，不適合直接作為醫療或精確飲食處方。營養數據依食材、品牌、烹調與份量而異。日後可整合台灣食藥署食品營養成分資料集與產品營養標示，並保留來源、版本及份量單位。</p></section></div>`;
 }
 function modalMarkup() {
@@ -237,6 +243,7 @@ function exportCsv() {
 function handleAction(action, button) {
   switch (action) {
     case 'nav': activePage = button.dataset.page; modal = null; render(); window.scrollTo(0,0); break;
+    case 'pick-day': if(isISODate(button.dataset.date)){selectedDate=button.dataset.date;render();} break;
     case 'date-prev': selectedDate = moveISODate(selectedDate, -1); render(); break;
     case 'date-next': selectedDate = moveISODate(selectedDate, 1); render(); break;
     case 'add-meal': preferredMeal = button.dataset.meal; activePage = 'foods'; foodCategory = '全部'; foodQuery = ''; render(); window.scrollTo(0, 0); break;
@@ -275,7 +282,7 @@ root.addEventListener('change', async e => {
       if (file.size > 15 * 1024 * 1024) throw new Error('檔案超過 15 MB。');
       const incoming = validateState(JSON.parse(await file.text()));
       if (confirm(`已驗證備份：${incoming.entries.length} 筆紀錄。匯入後將覆蓋此瀏覽器的現有資料，確定繼續嗎？`)) {
-        persistState(incoming); state = incoming; render(); flash('已成功匯入備份');
+        persistState(incoming); state = incoming; queueCloudSave(); render(); flash('已成功匯入備份');
       }
     } catch (error) { alert(`無法匯入：${error.message}`); }
     e.target.value = '';
@@ -327,4 +334,5 @@ root.addEventListener('submit', e => {
   }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal) { modal = null; render(); } });
+initCloudUI({getState:()=>state,setState:value=>{state=value;},render,flash});
 render();

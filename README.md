@@ -1,98 +1,67 @@
-# 🥗 NutriDay TW｜每天，好好吃飯
+# 營養茲｜陪你吃好每一天
 
-> 免費、繁體中文、手機友善的每日熱量與營養追蹤網頁 App。**v1.0 可以直接部署 GitHub Pages，完全不需要伺服器、資料庫帳號或 npm 套件。**
+繁體中文、手機友善的個人飲食日記。v2 加入新版介面與私人 Google Sheets 讀寫功能；不需安裝套件或使用付費 AI API。
 
-## 預覽與功能
+正式網站：https://roroo0902.github.io/Dietitian/
 
-- **我的一天**：早餐、午餐、晚餐及點心／飲料；當日熱量與蛋白質／碳水／脂肪；修改、刪除、日期切換。
-- **食物資料庫**：25 種台灣常見食物的**示範估值**；搜尋、分類、份數 0.1–100、自訂食物。
-- **營養分析**：近 7 天熱量趨勢、記錄日平均熱量、三大營養素換算熱量占比、匯出 CSV。
-- **設定與備份**：自訂熱量及蛋白質參考值、JSON 匯出／驗證匯入、清除資料。
-- **無帳號設計**：全部個人紀錄存在瀏覽器 `localStorage`，不會由本站上傳到任何伺服器。
+## 功能
 
-⚠️ **請先閱讀**：內建食物數據是用來展示功能的估算範例，**並非官方營養成分資料或確定的品牌標示**。便當、手搖飲與外食熱量差異尤其大。使用者應核對餐點份量、包裝標示或其他可靠資訊。此產品不是醫療／營養專業建議。
+- 今日總覽、七日日曆、四種餐別卡片。
+- 25 項示範食物、自訂食物、搜尋與小數份數。
+- 熱量、三大營養素、七日趨勢與 CSV／JSON 備份。
+- 私人 Google Sheet 讀寫：飲食紀錄、自訂食物、目標設定；食物資料庫分頁為內建示範值的參考清單。
+- 森林綠、奶油白、杏桃、淡紫介面與餐盤 SVG 插畫。
 
-## 畫面預覽
+## 連接私人 Google Sheet
 
-![電腦版總覽](docs/screenshots/desktop.png)
+[開啟完整設定指南](GOOGLE_SETUP.html)。資料庫保持限制存取，不要公開。
 
-[查看手機版操作畫面](docs/screenshots/mobile.png)
+1. 建立 Google Cloud 專案，啟用 Sheets API。
+2. 設定 Google Auth Platform，建立網頁版 OAuth Client ID。
+3. JavaScript origin：`https://roroo0902.github.io`，不包含專案路徑。
+4. App → 設定與備份，填入 Client ID、確認試算表 ID、登入 Google。
+5. 選擇採用雲端資料，或以本機覆蓋雲端，確認初次同步方向。
 
-## 60 秒啟動（無需 npm install）
+**完成 Client ID、Google 登入與初次確認前，不會自動上傳個人紀錄。**
 
-需要 Python 3 或任意靜態網頁伺服器：
+### 同步與隱私
 
-```bash
-python3 -m http.server 5173
+- 沿用既有 `nutriday-tw-v1` 本機資料，既有紀錄可繼續使用。
+- Client ID 與試算表 ID 保存在本機設定。Access token 僅在記憶體，不寫入 localStorage、URL 或 GitHub。
+- 使用 Google Identity Services token model，不需 Client Secret、API key 或 AI 金鑰。
+- scope `https://www.googleapis.com/auth/spreadsheets` 允許以你身分讀寫 Google 試算表，Google 不把這個 scope 限縮至單一檔案。程式只對指定資料庫 ID 發出請求；請自行查看授權畫面。
+- 確認方向後，每次修改先存本機，再短暫延遲上傳。寫入前比較雲端內容，以一個 batchUpdate 更新紀錄、自訂食物與設定，然後讀回驗證。
+- 發現雲端變動、授權到期或請求失敗時暫停自動儲存；本機紀錄保留。重新整理後需重新登入。
+- 手動覆蓋或採用雲端前保存一份本機復原點。仍建議定期匯出 JSON。
+- 個人版沒有完整交易鎖，請避免多個裝置同時修改；不適用多人共用或臨床個案管理。
+
+## 開發
+
+Node.js 20+，無需 npm install：
+
+```sh
+npm run dev
+npm test
 ```
 
-瀏覽 `http://localhost:5173`。也可以使用 VS Code Live Server。因為使用 ES Modules，不建議直接以 `file://` 雙擊 `index.html`。
+開啟 `http://127.0.0.1:5179`。本機測試 Google 登入時，需另外把本機 origin 加入 OAuth Client。
 
-## Node.js 測試
+## 程式結構
 
-```bash
-node --test tests/*.test.mjs
-```
+- `index.html`、`app.js`：入口、畫面與互動。
+- `styles.css`、`brand-v2.css`：基本樣式與品牌改版。
+- `data.js`、`math.js`、`storage.js`：示範資料、計算與本機保存。
+- `cloud.js`、`cloud-ui.js`：Google 授權、資料轉換、同步、衝突檢查與復原。
+- `meal-art.svg`、`favicon.svg`：品牌圖像。
+- `GOOGLE_SETUP.html`：Google OAuth 設定與疑難排解。
+- `tests/`：計算、驗證、雲端資料轉換及失敗情境測試。
 
-## 發布到 GitHub Pages
+GitHub Pages：main / 根目錄。保留這些檔案路徑，無需建置。
 
-1. GitHub 建立公開 Repository（建議取名 `nutriday-tw`）。
-2. 將壓縮檔解壓後的**所有檔案**上傳到 Repository 根目錄，確認根目錄能看到 `index.html`、`src/`、`styles.css`。
-3. 打開 **Settings → Pages → Build and deployment → Source: Deploy from a branch**。
-4. Branch 選 `main`，資料夾選 `/(root)`，按 **Save**。
-5. 網站網址預期為 `https://<你的 GitHub 使用者名稱>.github.io/<儲存庫名稱>/`。Pages 部署完成後即可使用。
+## 驗證與限制
 
-因為本專案無建置步驟，直接使用 GitHub Pages 的 branch publishing；**不需 `npm run build`**，也不需要 Vite `base` 設定。部署後，使用者輸入的本機資料不會被提交到 GitHub。
+12 項本機測試通過，桌機與手機畫面、新增半份紀錄已驗證。私人原生 Google Sheet 的分頁、欄位、數值與權限已核對。網站登入與個人紀錄的實際雲端往返，待擁有者完成 OAuth Client ID 後驗證。
 
-或使用命令列：
+內建營養數據仍是功能展示用估值，未匯入官方資料，也不代表已查核的品牌標示。本工具不提供診斷、醫療處方或自動判斷個人飲食需求。
 
-```bash
-git init
-git add .
-git commit -m "feat: NutriDay TW MVP"
-git branch -M main
-git remote add origin https://github.com/<USERNAME>/nutriday-tw.git
-git push -u origin main
-```
-
-## 資料安全
-
-- 使用者輸入的飲食與設定僅在該瀏覽器內儲存。**不支援跨裝置同步**。
-- 清除快取／網站資料、無痕模式關閉或更換裝置可能遺失紀錄；**定期備份 JSON**。
-- CSV 主要用於外部分析；復原需使用完整 JSON。
-- JSON 匯入會先做資料格式驗證，並在覆寫現有資料前再次確認。
-- 第三方若架設修改版，請自行審查其網路請求及隱私政策。
-
-## 專案目錄
-
-```text
-nutriday-tw/
-├── index.html                    # App 入口
-├── favicon.svg
-├── styles.css                    # 桌機／手機響應式 UI
-├── src/
-│   ├── app.js                    # 畫面、事件、互動
-│   ├── data.js                   # 25 項示範估值食物
-│   ├── math.js                   # 日期與營養計算
-│   └── storage.js                # 本機保存、驗證與匯入
-├── tests/math.test.mjs           # 核心測試
-├── docs/產品規格與畫面架構.md        # 需求、畫面與驗收條件
-├── package.json                 # 可選擇用 npm test
-├── LICENSE                      # MIT
-└── README.md
-```
-
-## 未來要接真實資料時
-
-台灣衛生福利部食品藥物管理署的 [食品營養成分資料集](https://data.gov.tw/dataset/8543) 可作為後續研究的原始資料來源，需確認其資料使用授權、每 100 克與每份的單位、不同加工及烹調條件、食物分類對照，以及資料更新日期。**目前版本尚未匯入此資料集。**
-
-## 設計／專業原則
-
-- 食物熱量為估計值，生活中不須追求不切實際的精確度。
-- 不替使用者自動設定限制性攝取目標。
-- 每日熱量、活動與體重關係受多種因素影響，不能只用 1 日數字判斷健康。
-- 希望追求更完整的資料品質與多樣性，請看 [`docs/產品規格與畫面架構.md`](docs/產品規格與畫面架構.md)。
-
-## 授權
-
-程式碼 MIT 授權。示範食物數值不得作為官方成分資料引用。
+程式碼沿用 MIT 授權。
