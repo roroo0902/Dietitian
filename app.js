@@ -2,7 +2,7 @@ import { DEMO_FOODS, DEMO_DAY, FOOD_CATEGORIES, MEALS } from './data.js';
 import { loadState, persistState, validateState, cleanFood, newState, makeId } from './storage.js';
 import { localISODate, moveISODate, lastSevenDays, sumNutrition, scaleNutrition, formatNumber, isISODate } from './math.js';
 import { initCloudUI, cloudBadge, cloudPanel, queueCloudSave } from './cloud-ui.js';
-import { buddyArt, BUDDY_NOTES, quickFoodChoices } from './playful.js';
+import { buddyArt, BUDDY_NOTES, quickFoodChoices } from './playful.js?v=4';
 
 let state = loadState();
 let selectedDate = localISODate();
@@ -78,7 +78,7 @@ function shell() {
       </aside>
       <div class="main-wrap">
         <header class="topbar">
-          <div class="topbar-brand"><span class="mobile-mark"><img src="favicon.svg?v=yingyangzi-1" width="25" height="25" alt="" /></span><span class="breadcrumb">營養茲 <span>/</span> <b>${pageLabel}</b></span></div>
+          <div class="topbar-brand"><span class="mobile-mark"><img src="favicon.svg?v=yingyangzi-1" width="25" height="25" alt="" /></span><span class="breadcrumb"><span class="breadcrumb-brand">營養茲</span> <span class="crumb-divider">/</span> <b>${pageLabel}</b></span></div>
           <div class="topbar-tools">${cloudBadge()}<div class="date-selector">
             <button type="button" class="date-arrow" data-action="date-prev" aria-label="前一天">${icon('back', 18)}</button>
             <label class="date-picker-label">${icon('calendar', 17)}<input type="date" id="selected-date" value="${selectedDate}" aria-label="紀錄日期" /></label>
