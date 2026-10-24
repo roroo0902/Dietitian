@@ -67,15 +67,15 @@ function shell() {
   return `
     <div class="app-layout">
       <aside class="sidebar">
-        <div class="brand"><div class="brand-icon">${icon('leaf', 24)}</div><div><strong>NutriDay<span> TW</span></strong><small>每天，好好吃飯。</small></div></div>
+        <div class="brand"><div class="brand-icon"><img src="favicon.svg?v=yingyangzi-1" width="32" height="32" alt="" /></div><div><strong>營養茲</strong><small>陪你吃好每一天。</small></div></div>
         <div class="nav-overline">我的健康日記</div>
         <nav class="sidebar-nav" aria-label="主要導覽">${navMarkup()}</nav>
         <div class="side-bottom"><div class="side-illustration">🥑 <span>🥬</span></div><strong>記錄是為了更了解自己</strong><p>不需要完美，只需要一點一點找到適合自己的步調。</p></div>
-        <div class="sidebar-foot">© 2026 NutriDay TW · v1.0</div>
+        <div class="sidebar-foot">營養茲 · 你的每日飲食夥伴</div>
       </aside>
       <div class="main-wrap">
         <header class="topbar">
-          <div class="topbar-brand"><span class="mobile-mark">🌱</span><span class="breadcrumb">你的飲食日記 <span>/</span> <b>${pageLabel}</b></span></div>
+          <div class="topbar-brand"><span class="mobile-mark"><img src="favicon.svg?v=yingyangzi-1" width="25" height="25" alt="" /></span><span class="breadcrumb">營養茲 <span>/</span> <b>${pageLabel}</b></span></div>
           <div class="date-selector">
             <button type="button" class="date-arrow" data-action="date-prev" aria-label="前一天">${icon('back', 18)}</button>
             <label class="date-picker-label">${icon('calendar', 17)}<input type="date" id="selected-date" value="${selectedDate}" aria-label="紀錄日期" /></label>
@@ -209,7 +209,7 @@ function modalMarkup() {
 }
 function render() {
   root.innerHTML = shell();
-  document.title = `${navigation.find(n => n.id === activePage)?.label}｜NutriDay TW`;
+  document.title = `${navigation.find(n => n.id === activePage)?.label}｜營養茲`;
   document.body.classList.toggle('has-modal', Boolean(modal));
   if (modal) root.querySelector('.modal-card input, .modal-card select')?.focus();
 }
@@ -232,7 +232,7 @@ function exportCsv() {
     rows.push([e.date, MEALS.find(m=>m.id === e.meal)?.label || e.meal, e.food.name, e.quantity, e.food.serving,
       ...['kcal','protein','carbs','fat'].map(k => Math.round(n[k] * 10) / 10), e.food.source === 'demo' ? '示範估值' : '自訂']);
   }
-  download(`NutriDay_飲食紀錄_${localISODate()}.csv`, '\uFEFF' + rows.map(row => row.map(quote).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+  download(`營養茲_飲食紀錄_${localISODate()}.csv`, '\uFEFF' + rows.map(row => row.map(quote).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
 function handleAction(action, button) {
   switch (action) {
@@ -255,7 +255,7 @@ function handleAction(action, button) {
       }
       commit('已新增示範紀錄，隨時可以刪除'); break;
     }
-    case 'export-json': download(`NutriDay_完整備份_${localISODate()}.json`, JSON.stringify(state, null, 2), 'application/json'); flash('已產生完整資料備份'); break;
+    case 'export-json': download(`營養茲_完整備份_${localISODate()}.json`, JSON.stringify(state, null, 2), 'application/json'); flash('已產生完整資料備份'); break;
     case 'export-csv': exportCsv(); flash('已產生 CSV 檔案'); break;
     case 'clear-all': if (confirm('確定永久清除所有本機飲食紀錄、自訂食物和設定嗎？此操作無法復原。')) { state = newState(); commit('已清除本機資料'); } break;
     default: break;

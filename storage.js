@@ -27,7 +27,7 @@ export function cleanFood(food, custom = false) {
 
 export function validateState(value) {
   if (!value || typeof value !== 'object' || value.version !== 1 || !Array.isArray(value.entries) || !Array.isArray(value.customFoods)) {
-    throw new Error('資料格式不符合 NutriDay v1。');
+    throw new Error('資料格式不符合 營養茲 v1。');
   }
   if (value.entries.length > 20000 || value.customFoods.length > 1000) throw new Error('資料量超出第一版限制。');
   const kcalGoal = numeric(value.settings?.kcalGoal, 10000);
